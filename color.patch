@@ -1,0 +1,555 @@
+diff --git a/core/Makefile b/core/Makefile
+index c617927..d818a3d 100644
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -1,5 +1,17 @@
+ # Put some miscellaneous rules here
+ 
++# Build system colors
++#
++ifneq ($(BUILD_WITH_COLORS),0)
++  CL_RED="\033[31m"
++  CL_GRN="\033[32m"
++  CL_YLW="\033[33m"
++  CL_BLU="\033[34m"
++  CL_MAG="\033[35m"
++  CL_CYN="\033[36m"
++  CL_RST="\033[0m"
++endif
++
+ # Pick a reasonable string to use to identify files.
+ ifneq "" "$(filter eng.%,$(BUILD_NUMBER))"
+   # BUILD_NUMBER has a timestamp in it, which means that
+@@ -565,7 +577,7 @@ endif  # TARGET_BUILD_APPS
+ $(kernel_notice_file): \
+ 	    prebuilts/qemu-kernel/arm/LINUX_KERNEL_COPYING \
+ 	    | $(ACP)
+-	@echo Copying: $@
++	@echo -e ${CL_CYN}"Copying: "${CL_RST}"$@"
+ 	$(hide) mkdir -p $(dir $@)
+ 	$(hide) $(ACP) $< $@
+ 
+@@ -727,13 +739,13 @@ $(INSTALLED_RECOVERYIMAGE_TARGET): $(MKBOOTFS) $(MKBOOTIMG) $(MINIGZIP) \
+ 		$(recovery_build_prop) $(recovery_resource_deps) \
+ 		$(recovery_fstab) \
+ 		$(RECOVERY_INSTALL_OTA_KEYS)
+-	@echo ----- Making recovery image ------
++	@echo -e ${CL_CYN}"----- Making recovery image ------"${CL_RST}
+ 	$(hide) rm -rf $(TARGET_RECOVERY_OUT)
+ 	$(hide) mkdir -p $(TARGET_RECOVERY_OUT)
+ 	$(hide) mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/etc $(TARGET_RECOVERY_ROOT_OUT)/tmp
+-	@echo Copying baseline ramdisk...
++	@echo -e ${CL_CYN}"Copying baseline ramdisk..."${CL_RST}
+ 	$(hide) cp -R $(TARGET_ROOT_OUT) $(TARGET_RECOVERY_OUT)
+-	@echo Modifying ramdisk contents...
++	@echo -e ${CL_CYN}"Modifying ramdisk contents..."${CL_RST}
+ 	$(hide) rm -f $(TARGET_RECOVERY_ROOT_OUT)/init*.rc
+ 	$(hide) cp -f $(recovery_initrc) $(TARGET_RECOVERY_ROOT_OUT)/
+ 	$(hide) -cp $(TARGET_ROOT_OUT)/init.recovery.*.rc $(TARGET_RECOVERY_ROOT_OUT)/
+@@ -750,7 +762,7 @@ $(INSTALLED_RECOVERYIMAGE_TARGET): $(MKBOOTFS) $(MKBOOTIMG) $(MINIGZIP) \
+ 	$(hide) $(MKBOOTFS) $(TARGET_RECOVERY_ROOT_OUT) | $(MINIGZIP) > $(recovery_ramdisk)
+ 	$(hide) $(MKBOOTIMG) $(INTERNAL_RECOVERYIMAGE_ARGS) $(BOARD_MKBOOTIMG_ARGS) --output $@
+ 	$(hide) $(call assert-max-image-size,$@,$(BOARD_RECOVERYIMAGE_PARTITION_SIZE),raw)
+-	@echo ----- Made recovery image: $@ --------
++	@echo -e ${CL_CYN}"----- Making recovery image ------"${CL_RST}
+ 
+ $(RECOVERY_RESOURCE_ZIP): $(INSTALLED_RECOVERYIMAGE_TARGET)
+ 	$(hide) mkdir -p $(dir $@)
+@@ -853,14 +865,14 @@ $(RECOVERY_FROM_BOOT_PATCH): $(INSTALLED_RECOVERYIMAGE_TARGET) \
+                              $(INSTALLED_BOOTIMAGE_TARGET) \
+ 			     $(HOST_OUT_EXECUTABLES)/imgdiff \
+ 	                     $(HOST_OUT_EXECUTABLES)/bsdiff
+-	@echo "Construct recovery from boot"
++	@echo -e ${CL_CYN}"Construct recovery from boot"${CL_RST}
+ 	mkdir -p $(dir $@)
+ 	PATH=$(HOST_OUT_EXECUTABLES):$$PATH $(HOST_OUT_EXECUTABLES)/imgdiff $(INSTALLED_BOOTIMAGE_TARGET) $(INSTALLED_RECOVERYIMAGE_TARGET) $@
+ endif
+ 
+ 
+ $(INSTALLED_SYSTEMIMAGE): $(BUILT_SYSTEMIMAGE) $(RECOVERY_FROM_BOOT_PATCH) | $(ACP)
+-	@echo "Install system fs image: $@"
++	@echo -e ${CL_CYN}"Install system fs image: $@"${CL_RST}
+ 	$(copy-file-to-target)
+ 	$(hide) $(call assert-max-image-size,$@ $(RECOVERY_FROM_BOOT_PATCH),$(BOARD_SYSTEMIMAGE_PARTITION_SIZE),yaffs)
+ 
+@@ -1212,7 +1224,7 @@ $(BUILT_TARGET_FILES_PACKAGE): \
+ 		$(APKCERTS_FILE) \
+ 		$(HOST_OUT_EXECUTABLES)/fs_config \
+ 		| $(ACP)
+-	@echo "Package target files: $@"
++	@echo -e ${CL_YLW}"Package target files:"${CL_RST}" $@"
+ 	$(hide) rm -rf $@ $(zip_root)
+ 	$(hide) mkdir -p $(dir $@) $(zip_root)
+ 	@# Components of the recovery image
+@@ -1329,7 +1341,7 @@ INTERNAL_OTA_PACKAGE_TARGET := $(PRODUCT_OUT)/$(name).zip
+ $(INTERNAL_OTA_PACKAGE_TARGET): KEY_CERT_PAIR := $(DEFAULT_KEY_CERT_PAIR)
+ 
+ $(INTERNAL_OTA_PACKAGE_TARGET): $(BUILT_TARGET_FILES_PACKAGE) $(DISTTOOLS)
+-	@echo "Package OTA: $@"
++	@echo -e ${CL_YLW}"Package OTA:"${CL_RST}" $@"
+ 	$(hide) ./build/tools/releasetools/ota_from_target_files -v \
+ 	   -p $(HOST_OUT) \
+ 	   -k $(KEY_CERT_PAIR) \
+@@ -1357,7 +1369,7 @@ $(INTERNAL_UPDATE_PACKAGE_TARGET): extensions := $(TARGET_RELEASETOOLS_EXTENSION
+ endif
+ 
+ $(INTERNAL_UPDATE_PACKAGE_TARGET): $(BUILT_TARGET_FILES_PACKAGE) $(DISTTOOLS)
+-	@echo "Package: $@"
++	@echo -e ${CL_YLW}"Package:"${CL_RST}" $@"
+ 	$(hide) ./build/tools/releasetools/img_from_target_files -v \
+ 	   -s $(extensions) \
+ 	   -p $(HOST_OUT) \
+@@ -1395,7 +1407,7 @@ $(BUILT_TESTS_ZIP_PACKAGE): zip_root := $(intermediates)/$(name)
+ $(BUILT_TESTS_ZIP_PACKAGE): \
+     $(INTERNAL_USERDATAIMAGE_FILES) \
+     | $(ACP)
+-	@echo "Package test files: $@"
++	@echo -e ${CL_YLW}"Package test files:"${CL_RST}" $@"
+ 	$(hide) rm -rf $@ $(zip_root)
+ 	$(hide) mkdir -p $(dir $@) $(zip_root)
+ 	@# Contents of the data image
+@@ -1423,7 +1435,7 @@ name := $(name)-symbols-$(FILE_NAME_TAG)
+ 
+ SYMBOLS_ZIP := $(PRODUCT_OUT)/$(name).zip
+ $(SYMBOLS_ZIP): $(INSTALLED_SYSTEMIMAGE) $(INSTALLED_BOOTIMAGE_TARGET)
+-	@echo "Package symbols: $@"
++	@echo -e ${CL_YLW}"Package symbols:"${CL_RST}" $@"
+ 	$(hide) rm -rf $@
+ 	$(hide) mkdir -p $(dir $@)
+ 	$(hide) zip -qr $@ $(TARGET_OUT_UNSTRIPPED)
+@@ -1440,7 +1452,7 @@ name := $(name)-apps-$(FILE_NAME_TAG)
+ 
+ APPS_ZIP := $(PRODUCT_OUT)/$(name).zip
+ $(APPS_ZIP): $(INSTALLED_SYSTEMIMAGE)
+-	@echo "Package apps: $@"
++	@echo -e ${CL_YLW}"Package apps:"${CL_RST}" $@"
+ 	$(hide) rm -rf $@
+ 	$(hide) mkdir -p $(dir $@)
+ 	$(hide) zip -qj $@ $(TARGET_OUT_APPS)/*
+@@ -1501,7 +1513,7 @@ name := $(TARGET_PRODUCT)-emulator-$(FILE_NAME_TAG)
+ INTERNAL_EMULATOR_PACKAGE_TARGET := $(PRODUCT_OUT)/$(name).zip
+ 
+ $(INTERNAL_EMULATOR_PACKAGE_TARGET): $(INTERNAL_EMULATOR_PACKAGE_FILES)
+-	@echo "Package: $@"
++	@echo -e ${CL_YLW}"Package:"${CL_RST}" $@"
+ 	$(hide) zip -qj $@ $(INTERNAL_EMULATOR_PACKAGE_FILES)
+ 
+ endif
+diff --git a/core/base_rules.mk b/core/base_rules.mk
+index 36f36c1..5d17ba5 100644
+--- a/core/base_rules.mk
++++ b/core/base_rules.mk
+@@ -466,7 +466,7 @@ $(cleantarget) : PRIVATE_CLEAN_FILES := \
+     $(LOCAL_INSTALLED_MODULE) \
+     $(intermediates)
+ $(cleantarget)::
+-	@echo "Clean: $(PRIVATE_MODULE)"
++	@echo -e ${CL_GRN}"Clean:"${CL_RST}" $(PRIVATE_MODULE)"
+ 	$(hide) rm -rf $(PRIVATE_CLEAN_FILES)
+ 
+ ###########################################################
+@@ -526,12 +526,12 @@ ifndef LOCAL_UNINSTALLABLE_MODULE
+ $(LOCAL_INSTALLED_MODULE): PRIVATE_POST_INSTALL_CMD := $(LOCAL_POST_INSTALL_CMD)
+ ifneq ($(LOCAL_ACP_UNAVAILABLE),true)
+ $(LOCAL_INSTALLED_MODULE): $(LOCAL_BUILT_MODULE) | $(ACP)
+-	@echo "Install: $@"
++	@echo -e ${CL_CYN}"Install: $@"${CL_RST}
+ 	$(copy-file-to-new-target)
+ 	$(PRIVATE_POST_INSTALL_CMD)
+ else
+ $(LOCAL_INSTALLED_MODULE): $(LOCAL_BUILT_MODULE)
+-	@echo "Install: $@"
++	@echo -e ${CL_CYN}"Install: $@"${CL_RST}
+ 	$(copy-file-to-target-with-cp)
+ endif
+ 
+@@ -539,7 +539,7 @@ ifdef LOCAL_DEX_PREOPT
+ installed_odex := $(basename $(LOCAL_INSTALLED_MODULE)).odex
+ built_odex := $(basename $(LOCAL_BUILT_MODULE)).odex
+ $(installed_odex) : $(built_odex) $(LOCAL_BUILT_MODULE) | $(ACP)
+-	@echo "Install: $@"
++	@echo -e ${CL_CYN}"Install: $@"${CL_RST}
+ 	$(copy-file-to-target)
+ 
+ $(LOCAL_INSTALLED_MODULE) : $(installed_odex)
+diff --git a/core/binary.mk b/core/binary.mk
+index f9f42bd..4c8b20d 100644
+--- a/core/binary.mk
++++ b/core/binary.mk
+@@ -623,7 +623,7 @@ import_includes_deps := $(strip \
+     $(foreach l, $(LOCAL_IMPORT_C_INCLUDE_DIRS_FROM_SHARED_LIBRARIES), \
+       $(call intermediates-dir-for,SHARED_LIBRARIES,$(l),$(LOCAL_IS_HOST_MODULE))/export_includes))
+ $(import_includes) : $(import_includes_deps)
+-	@echo Import includes file: $@
++	@echo -e ${CL_CYN}Import includes file:${CL_RST} $@
+ 	$(hide) mkdir -p $(dir $@) && rm -f $@
+ ifdef import_includes_deps
+ 	$(hide) for f in $^; do \
+@@ -798,7 +798,7 @@ $(LOCAL_INSTALLED_MODULE): | $(installed_static_library_notice_file_targets)
+ export_includes := $(intermediates)/export_includes
+ $(export_includes): PRIVATE_EXPORT_C_INCLUDE_DIRS := $(LOCAL_EXPORT_C_INCLUDE_DIRS)
+ $(export_includes) : $(LOCAL_MODULE_MAKEFILE)
+-	@echo Export includes file: $< -- $@
++	@echo -e ${CL_CYN}Export includes file:${CL_RST} $< -- $@
+ 	$(hide) mkdir -p $(dir $@) && rm -f $@
+ ifdef LOCAL_EXPORT_C_INCLUDE_DIRS
+ 	$(hide) for d in $(PRIVATE_EXPORT_C_INCLUDE_DIRS); do \
+diff --git a/core/cleanbuild.mk b/core/cleanbuild.mk
+index fa67332..6b0b4f1 100644
+--- a/core/cleanbuild.mk
++++ b/core/cleanbuild.mk
+@@ -216,13 +216,13 @@ endif
+ dataclean: FILES := $(dataclean_files)
+ dataclean:
+ 	$(hide) rm -rf $(FILES)
+-	@echo "Deleted emulator userdata images."
++	@echo -e ${CL_GRN}"Deleted emulator userdata images."${CL_RST}
+ 
+ .PHONY: installclean
+ installclean: FILES := $(installclean_files)
+ installclean: dataclean
+ 	$(hide) rm -rf $(FILES)
+-	@echo "Deleted images and staging directories."
++	@echo -e ${CL_GRN}"Deleted images and staging directories."${CL_RST}
+ 
+ ifeq "$(force_installclean)" "true"
+   $(info *** Forcing "make installclean"...)
+diff --git a/core/definitions.mk b/core/definitions.mk
+index 47f95d8..a32fc4d 100644
+--- a/core/definitions.mk
++++ b/core/definitions.mk
+@@ -918,7 +918,7 @@ endef
+ 
+ define transform-cpp-to-o
+ @mkdir -p $(dir $@)
+-@echo "target $(PRIVATE_ARM_MODE) C++: $(PRIVATE_MODULE) <= $<"
++@echo -e ${CL_GRN}"target $(PRIVATE_ARM_MODE) C++:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
+ $(hide) $(PRIVATE_CXX) \
+ 	$(addprefix -I , $(PRIVATE_C_INCLUDES)) \
+ 	$(shell cat $(PRIVATE_IMPORT_INCLUDES)) \
+@@ -967,12 +967,12 @@ $(hide) $(PRIVATE_CC) \
+ endef
+ 
+ define transform-c-to-o-no-deps
+-@echo "target $(PRIVATE_ARM_MODE) C: $(PRIVATE_MODULE) <= $<"
++@echo -e ${CL_GRN}"target $(PRIVATE_ARM_MODE) C:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
+ $(call transform-c-or-s-to-o-no-deps, $(PRIVATE_CFLAGS) $(PRIVATE_CONLYFLAGS) $(PRIVATE_DEBUG_CFLAGS))
+ endef
+ 
+ define transform-s-to-o-no-deps
+-@echo "target asm: $(PRIVATE_MODULE) <= $<"
++@echo -e ${CL_GRN}"target asm:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
+ $(call transform-c-or-s-to-o-no-deps, $(PRIVATE_ASFLAGS))
+ endef
+ 
+@@ -1008,7 +1008,7 @@ endef
+ 
+ define transform-host-cpp-to-o
+ @mkdir -p $(dir $@)
+-@echo "host C++: $(PRIVATE_MODULE) <= $<"
++@echo -e ${CL_YLW}"host C++:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
+ $(hide) $(PRIVATE_CXX) \
+ 	$(addprefix -I , $(PRIVATE_C_INCLUDES)) \
+ 	$(shell cat $(PRIVATE_IMPORT_INCLUDES)) \
+@@ -1054,12 +1054,12 @@ $(hide) $(PRIVATE_CC) \
+ endef
+ 
+ define transform-host-c-to-o-no-deps
+-@echo "host C: $(PRIVATE_MODULE) <= $<"
++@echo -e ${CL_YLW}"host C:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
+ $(call transform-host-c-or-s-to-o-no-deps, $(PRIVATE_CFLAGS) $(PRIVATE_CONLYFLAGS) $(PRIVATE_DEBUG_CFLAGS))
+ endef
+ 
+ define transform-host-s-to-o-no-deps
+-@echo "host asm: $(PRIVATE_MODULE) <= $<"
++@echo -e ${CL_YLW}"host asm:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
+ $(call transform-host-c-or-s-to-o-no-deps, $(PRIVATE_ASFLAGS))
+ endef
+ 
+@@ -1113,7 +1113,7 @@ endef
+ 
+ # $(1): the full path of the source static library.
+ define _extract-and-include-single-target-whole-static-lib
+-@echo "preparing StaticLib: $(PRIVATE_MODULE) [including $(1)]"
++@echo -e ${CL_YLW}"preparing StaticLib:"${CL_RST}" $(PRIVATE_MODULE) [including $(1)]"
+ $(hide) ldir=$(PRIVATE_INTERMEDIATES_DIR)/WHOLE/$(basename $(notdir $(1)))_objs;\
+     rm -rf $$ldir; \
+     mkdir -p $$ldir; \
+@@ -1137,7 +1137,7 @@ define transform-o-to-static-lib
+ @mkdir -p $(dir $@)
+ @rm -f $@
+ $(extract-and-include-target-whole-static-libs)
+-@echo "target StaticLib: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_GRN}"target StaticLib:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(call split-long-arguments,$(TARGET_AR) $(TARGET_GLOBAL_ARFLAGS) $(PRIVATE_ARFLAGS) $@,$(filter %.o, $^))
+ endef
+ 
+@@ -1147,7 +1147,7 @@ endef
+ 
+ # $(1): the full path of the source static library.
+ define _extract-and-include-single-host-whole-static-lib
+-@echo "preparing StaticLib: $(PRIVATE_MODULE) [including $(1)]"
++@echo -e ${CL_YLW}"preparing StaticLib:"${CL_RST}" $(PRIVATE_MODULE) [including $(1)]"
+ $(hide) ldir=$(PRIVATE_INTERMEDIATES_DIR)/WHOLE/$(basename $(notdir $(1)))_objs;\
+     rm -rf $$ldir; \
+     mkdir -p $$ldir; \
+@@ -1171,7 +1171,7 @@ define transform-host-o-to-static-lib
+ @mkdir -p $(dir $@)
+ @rm -f $@
+ $(extract-and-include-host-whole-static-libs)
+-@echo "host StaticLib: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_YLW}"host StaticLib:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(call split-long-arguments,$(HOST_AR) $(HOST_GLOBAL_ARFLAGS) $(PRIVATE_ARFLAGS) $@,$(filter %.o, $^))
+ endef
+ 
+@@ -1208,13 +1208,13 @@ endif
+ 
+ define transform-host-o-to-shared-lib
+ @mkdir -p $(dir $@)
+-@echo "host SharedLib: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_YLW}"host SharedLib:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(transform-host-o-to-shared-lib-inner)
+ endef
+ 
+ define transform-host-o-to-package
+ @mkdir -p $(dir $@)
+-@echo "host Package: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_YLW}"host Package:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(transform-host-o-to-shared-lib-inner)
+ endef
+ 
+@@ -1258,13 +1258,13 @@ endif
+ 
+ define transform-o-to-shared-lib
+ @mkdir -p $(dir $@)
+-@echo "target SharedLib: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_GRN}"target SharedLib:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(transform-o-to-shared-lib-inner)
+ endef
+ 
+ define transform-o-to-package
+ @mkdir -p $(dir $@)
+-@echo "target Package: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_GRN}"target Package:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(transform-o-to-shared-lib-inner)
+ endef
+ 
+@@ -1275,7 +1275,7 @@ endef
+ 
+ define transform-to-stripped
+ @mkdir -p $(dir $@)
+-@echo "target Strip: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_GRN}"target Strip:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(hide) $(TARGET_STRIP_COMMAND)
+ endef
+ 
+@@ -1307,7 +1307,7 @@ endif
+ 
+ define transform-o-to-executable
+ @mkdir -p $(dir $@)
+-@echo "target Executable: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_GRN}"target Executable:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(transform-o-to-executable-inner)
+ endef
+ 
+@@ -1326,7 +1326,7 @@ endif
+ 
+ define transform-o-to-static-executable
+ @mkdir -p $(dir $@)
+-@echo "target StaticExecutable: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_GRN}"target StaticExecutable:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(transform-o-to-static-executable-inner)
+ endef
+ 
+@@ -1360,7 +1360,7 @@ endif
+ 
+ define transform-host-o-to-executable
+ @mkdir -p $(dir $@)
+-@echo "host Executable: $(PRIVATE_MODULE) ($@)"
++@echo -e ${CL_YLW}"host Executable:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(transform-host-o-to-executable-inner)
+ endef
+ 
+@@ -1732,7 +1732,7 @@ endef
+ # $(2): destination header
+ define copy-one-header
+ $(2): $(1)
+-	@echo "Header: $$@"
++	@echo -e ${CL_YLW}"Header:"${CL_RST}" $$@"
+ 	$$(copy-file-to-new-target-with-cp)
+ endef
+ 
+@@ -1741,7 +1741,7 @@ endef
+ # $(2): destination file
+ define copy-one-file
+ $(2): $(1) | $(ACP)
+-	@echo "Copy: $$@"
++	@echo -e ${CL_YLW}"Copy:"${CL_RST}" $$@"
+ 	$$(copy-file-to-target)
+ endef
+ 
+@@ -1762,7 +1762,7 @@ endef
+ # $(2): destination file, must end with .xml.
+ define copy-xml-file-checked
+ $(2): $(1) | $(ACP)
+-	@echo "Copy xml: $$@"
++	@echo -e ${CL_YLW}"Copy xml:"${CL_RST}" $$@"
+ 	$(hide) xmllint $$< >/dev/null  # Don't print the xml file to stdout.
+ 	$$(copy-file-to-target)
+ endef
+@@ -1820,19 +1820,19 @@ endef
+ 
+ # Copy a prebuilt file to a target location.
+ define transform-prebuilt-to-target
+-@echo "$(if $(PRIVATE_IS_HOST_MODULE),host,target) Prebuilt: $(PRIVATE_MODULE) ($@)"
++@echo -e "$(if $(PRIVATE_IS_HOST_MODULE),host,target) "${CL_CYN}"Prebuilt:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(copy-file-to-target)
+ endef
+ 
+ # Copy a prebuilt file to a target location, using zipalign on it.
+ define transform-prebuilt-to-target-with-zipalign
+-@echo "$(if $(PRIVATE_IS_HOST_MODULE),host,target) Prebuilt APK: $(PRIVATE_MODULE) ($@)"
++@echo "$(if $(PRIVATE_IS_HOST_MODULE),host,target) "${CL_CYN}"Prebuilt APK:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(copy-file-to-target-with-zipalign)
+ endef
+ 
+ # Copy a prebuilt file to a target location, stripping "# comment" comments.
+ define transform-prebuilt-to-target-strip-comments
+-@echo "$(if $(PRIVATE_IS_HOST_MODULE),host,target) Prebuilt: $(PRIVATE_MODULE) ($@)"
++@echo "$(if $(PRIVATE_IS_HOST_MODULE),host,target) "${CL_CYN}"Prebuilt:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ $(copy-file-to-target-strip-comments)
+ endef
+ 
+@@ -1876,7 +1876,7 @@ endef
+ ###########################################################
+ 
+ define transform-generated-source
+-@echo "target Generated: $(PRIVATE_MODULE) <= $<"
++@echo -e ${CL_GRN}"target Generated:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
+ @mkdir -p $(dir $@)
+ $(hide) $(PRIVATE_CUSTOM_TOOL)
+ endef
+diff --git a/core/dynamic_binary.mk b/core/dynamic_binary.mk
+index 7778477..6a9dba8 100644
+--- a/core/dynamic_binary.mk
++++ b/core/dynamic_binary.mk
+@@ -84,7 +84,7 @@ compress_output := $(intermediates)/COMPRESSED-$(LOCAL_BUILT_MODULE_STEM)
+ #TODO: define a rule to build TARGET_SYMBOL_FILTER_FILE, and
+ #      make it depend on ALL_ORIGINAL_DYNAMIC_BINARIES.
+ $(compress_output): $(compress_input) $(TARGET_SYMBOL_FILTER_FILE) | $(ACP)
+-	@echo "target Compress Symbols: $(PRIVATE_MODULE) ($@)"
++	@echo -e ${CL_GRN}"target Compress Symbols:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ 	$(copy-file-to-target)
+ else
+ # Skip this step.
+@@ -97,7 +97,7 @@ endif
+ symbolic_input := $(compress_output)
+ symbolic_output := $(LOCAL_UNSTRIPPED_PATH)/$(LOCAL_INSTALLED_MODULE_STEM)
+ $(symbolic_output) : $(symbolic_input) | $(ACP)
+-	@echo "target Symbolic: $(PRIVATE_MODULE) ($@)"
++	@echo -e ${CL_GRN}"target Symbolic:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ 	$(copy-file-to-target)
+ 
+ 
+@@ -123,11 +123,11 @@ else
+ # use cp(1) instead.
+ ifneq ($(LOCAL_ACP_UNAVAILABLE),true)
+ $(strip_output): $(strip_input) | $(ACP)
+-	@echo "target Unstripped: $(PRIVATE_MODULE) ($@)"
++	@echo -e ${CL_GRN}"target Unstripped:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ 	$(copy-file-to-target)
+ else
+ $(strip_output): $(strip_input)
+-	@echo "target Unstripped: $(PRIVATE_MODULE) ($@)"
++	@echo -e ${CL_GRN}"target Unstripped:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ 	$(copy-file-to-target-with-cp)
+ endif
+ endif # LOCAL_STRIP_MODULE
+diff --git a/core/main.mk b/core/main.mk
+index 79c7475..09b5d50 100644
+--- a/core/main.mk
++++ b/core/main.mk
+@@ -912,7 +912,7 @@ $(foreach module,$(sample_MODULES),$(eval $(call \
+ sample_ADDITIONAL_INSTALLED := \
+         $(filter-out $(modules_to_install) $(modules_to_check) $(ALL_PREBUILT),$(sample_MODULES))
+ samplecode: $(sample_APKS_COLLECTION)
+-	@echo "Collect sample code apks: $^"
++	@echo -e ${CL_GRN}"Collect sample code apks:"${CL_RST}" $^"
+ 	# remove apks that are not intended to be installed.
+ 	rm -f $(sample_ADDITIONAL_INSTALLED)
+ 
+@@ -922,7 +922,7 @@ findbugs: $(INTERNAL_FINDBUGS_HTML_TARGET) $(INTERNAL_FINDBUGS_XML_TARGET)
+ .PHONY: clean
+ clean:
+ 	@rm -rf $(OUT_DIR)
+-	@echo "Entire build directory removed."
++	@echo -e ${CL_GRN}"Entire build directory removed."${CL_RST}
+ 
+ .PHONY: clobber
+ clobber: clean
+@@ -932,7 +932,7 @@ clobber: clean
+ #xxx scrape this from ALL_MODULE_NAME_TAGS
+ .PHONY: modules
+ modules:
+-	@echo "Available sub-modules:"
++	@echo -e ${CL_GRN}"Available sub-modules:"${CL_RST}
+ 	@echo "$(call module-names-for-tag-list,$(ALL_MODULE_TAGS))" | \
+ 	      tr -s ' ' '\n' | sort -u | $(COLUMN)
+ 
+diff --git a/core/notice_files.mk b/core/notice_files.mk
+index 5af0113..6e305f8 100644
+--- a/core/notice_files.mk
++++ b/core/notice_files.mk
+@@ -62,7 +62,7 @@ installed_notice_file := $($(my_prefix)OUT_NOTICE_FILES)/src/$(module_installed_
+ $(installed_notice_file): PRIVATE_INSTALLED_MODULE := $(module_installed_filename)
+ 
+ $(installed_notice_file): $(notice_file)
+-	@echo Notice file: $< -- $@
++	@echo -e ${CL_CYN}Notice file:${CL_RST} $< -- $@
+ 	$(hide) mkdir -p $(dir $@)
+ 	$(hide) cat $< > $@
+ 
+diff --git a/core/package.mk b/core/package.mk
+index 5fb1d33..96d228a 100644
+--- a/core/package.mk
++++ b/core/package.mk
+@@ -234,7 +234,7 @@ $(R_file_stamp): PRIVATE_RESOURCE_PUBLICS_OUTPUT := \
+ 			$(intermediates.COMMON)/public_resources.xml
+ $(R_file_stamp): PRIVATE_PROGUARD_OPTIONS_FILE := $(proguard_options_file)
+ $(R_file_stamp): $(all_res_assets) $(full_android_manifest) $(RenderScript_file_stamp) $(AAPT) | $(ACP)
+-	@echo "target R.java/Manifest.java: $(PRIVATE_MODULE) ($@)"
++	@echo -e ${CL_YLW}"target R.java/Manifest.java:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ 	@rm -f $@
+ 	$(create-resource-java-files)
+ 	$(hide) for GENERATED_MANIFEST_FILE in `find $(PRIVATE_SOURCE_INTERMEDIATES_DIR) \
+@@ -266,7 +266,7 @@ $(R_file_stamp): $(resource_export_package)
+ $(resource_export_package): PRIVATE_PRODUCT_AAPT_CONFIG :=
+ $(resource_export_package): PRIVATE_PRODUCT_AAPT_PREF_CONFIG :=
+ $(resource_export_package): $(all_res_assets) $(full_android_manifest) $(RenderScript_file_stamp) $(AAPT)
+-	@echo "target Export Resources: $(PRIVATE_MODULE) ($@)"
++	@echo -e ${CL_GRN}"target Export Resources:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ 	$(create-empty-package)
+ 	$(add-assets-to-package)
+ endif
+@@ -408,7 +408,7 @@ else
+     $(LOCAL_BUILT_MODULE): PRIVATE_PRODUCT_AAPT_PREF_CONFIG := $(PRODUCT_AAPT_PREF_CONFIG)
+ endif
+ $(LOCAL_BUILT_MODULE): $(all_res_assets) $(jni_shared_libraries) $(full_android_manifest)
+-	@echo "target Package: $(PRIVATE_MODULE) ($@)"
++	@echo -e ${CL_GRN}"target Package:"${CL_RST}" $(PRIVATE_MODULE) ($@)"
+ 	$(create-empty-package)
+ 	$(add-assets-to-package)
+ ifneq ($(jni_shared_libraries),)
+diff --git a/core/raw_executable.mk b/core/raw_executable.mk
+index b64173a..d43bff0 100644
+--- a/core/raw_executable.mk
++++ b/core/raw_executable.mk
+@@ -14,7 +14,7 @@ $(all_objects) : PRIVATE_TARGET_GLOBAL_CPPFLAGS :=
+ 
+ $(LOCAL_BUILT_MODULE): $(all_objects) $(all_libraries)
+ 	@$(mkdir -p $(dir $@)
+-	@echo "target Linking: $(PRIVATE_MODULE)"
++	@echo -e ${CL_GRN}"target Linking:"${CL_RST}" $(PRIVATE_MODULE)"
+ 	$(hide) $(TARGET_LD) \
+ 		$(addprefix --script ,$(PRIVATE_LINK_SCRIPT)) \
+ 		$(PRIVATE_RAW_EXECUTABLE_LDFLAGS) \
