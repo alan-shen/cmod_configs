@@ -30,7 +30,22 @@ function _fastboot()
   cmds="update flashall flash erase getvar boot devices \
         reboot reboot-bootloader oem continue"
   subcommand=""
-  partition_list="boot recovery system userdata bootloader radio"
+  partition_list="boot recovery system userdata radio fastboot"
+  oemcmds="toadb startftm getsn check_cputype checksum \
+	  fpt_writeitem fpt_writevalidbit fpt_closemnf \
+	  txemanuf_eof_test txemanuf_bist_test erase repart \
+	  write_osip_header start_partitioning partition retrieve_partitions stop_partitioning \
+	  get_batt_info backup_factory restore_factory fastboot2adb reboot fru uniqueid \
+	  get-spid get-fru get-part-id get-lifetime start-update cancel-update finalize-update remove-token \
+	  nvm enable_flash_logs disable_flash_logs \
+	  dnx_timeout"
+  flashcmds="update system factory adb_config_file \
+	  rnd_read rnd_write rnd_erase \
+	  radio radio_fuse radio_erase_all radio_fuse_only radio_img \
+	  token txemanuf ulpmc capsule token_umip \
+	  fpt_ifwi fpt_txe fpt_pdr fpt_bios fpt_fpfs \
+	  splashscreen dnx ifwi testos boot recovery fastboot ESP"
+  erasecmds="factory system cache config logs data"
   device_selected=""
 
   # Look for the subcommand.
@@ -76,12 +91,17 @@ function _fastboot()
       ;;
     flash)
       # partition name
-      COMPREPLY=( $(compgen -W "${partition_list}" -- ${cur}) )
+      COMPREPLY=( $(compgen -W "${flashcmds}" -- ${cur}) )
       return 0
       ;;
     erase)
       # partition name
-      COMPREPLY=( $(compgen -W "${partition_list}" -- ${cur}) )
+      COMPREPLY=( $(compgen -W "${erasecmds}" -- ${cur}) )
+      return 0
+      ;;
+    oem)
+      # partition name
+      COMPREPLY=( $(compgen -W "${oemcmds}" -- ${cur}) )
       return 0
       ;;
   esac
